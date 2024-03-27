@@ -6,7 +6,7 @@
     <artifactId>externalCustomer-match-kata</artifactId>
     <version>1.0-SNAPSHOT</version>
     <name>ConsumerMatchKata</name>
-    
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -16,7 +16,14 @@
     </properties>
 
     <dependencies>
-        <dependency>
+      <!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
+      <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>1.18.32</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <version>${junit.jupiter.version}</version>
@@ -42,15 +49,15 @@
     </dependencies>
 
     <build>
-    	
+
         <plugins>
             <!-- JUnit 5 requires Surefire version 2.22.0 or higher -->
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.22.0</version>
             </plugin>
-            
-        
+
+
         </plugins>
     </build>
 
