@@ -1,6 +1,8 @@
 package codingdojo;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public class CustomerSync {
 
@@ -22,136 +24,156 @@ public class CustomerSync {
         } else {
             customerMatches = loadPerson(externalCustomer);
         }
-        Customer customer = customerMatches.getCustomer();
+        Optional<Customer> maybeCustomer = customerMatches.customer();
 
-        if (customer == null) {
-            customer = new Customer();
-            customer.setExternalId(externalCustomer.getExternalId());
-            customer.setMasterExternalId(externalCustomer.getExternalId());
+        Customer customer;
+        if (!maybeCustomer.isPresent()) {
+            customer = ImmutableCustomer.builder()
+                    .externalId(externalCustomer.externalId())
+                    .masterExternalId(externalCustomer.externalId())
+                    .customerType(externalCustomer.isCompany() ? CustomerType.COMPANY : CustomerType.PERSON)
+                    .build();
+        }
+        else {
+            customer = maybeCustomer.get();
         }
 
-        populateFields(externalCustomer, customer);
+        Customer newCustomer = populateFields(externalCustomer, customer);
 
         boolean created = false;
-        if (customer.getInternalId() == null) {
-            customer = createCustomer(customer);
+        if (!newCustomer.isInternal()) {
+            newCustomer = createCustomer(newCustomer);
             created = true;
         } else {
-            updateCustomer(customer);
+            newCustomer = updateCustomer(newCustomer);
         }
-        updateContactInfo(externalCustomer, customer);
+        newCustomer = updateContactInfo(externalCustomer, newCustomer);
 
-        if (customerMatches.hasDuplicates()) {
-            for (Customer duplicate : customerMatches.getDuplicates()) {
-                updateDuplicate(externalCustomer, duplicate);
+        Collection<Customer> duplicates = customerMatches.duplicates();
+        if (!duplicates.isEmpty()) {
+            for (Customer duplicate : customerMatches.duplicates()) {
+                duplicate = updateDuplicate(externalCustomer, duplicate);
             }
         }
 
-        updateRelations(externalCustomer, customer);
-        updatePreferredStore(externalCustomer, customer);
+        newCustomer = updateRelations(externalCustomer, newCustomer);
+        newCustomer = updatePreferredStore(externalCustomer, newCustomer);
+        updateCustomer(newCustomer);
 
         return created;
     }
 
-    private void updateRelations(ExternalCustomer externalCustomer, Customer customer) {
-        List<ShoppingList> consumerShoppingLists = externalCustomer.getShoppingLists();
+    private Customer updateRelations(ExternalCustomer externalCustomer, Customer customer) {
+        List<ShoppingList> consumerShoppingLists = externalCustomer.shoppingLists();
         for (ShoppingList consumerShoppingList : consumerShoppingLists) {
-            this.customerDataAccess.updateShoppingList(customer, consumerShoppingList);
+            customer = this.customerDataAccess.updateShoppingList(customer, consumerShoppingList);
         }
+        return customer;
     }
 
     private Customer updateCustomer(Customer customer) {
         return this.customerDataAccess.updateCustomerRecord(customer);
     }
 
-    private void updateDuplicate(ExternalCustomer externalCustomer, Customer duplicate) {
-        if (duplicate == null) {
-            duplicate = new Customer();
-            duplicate.setExternalId(externalCustomer.getExternalId());
-            duplicate.setMasterExternalId(externalCustomer.getExternalId());
-        }
+    private Customer updateDuplicate(ExternalCustomer externalCustomer, Customer duplicate) {
+      Customer newCustomer = ImmutableCustomer.copyOf(duplicate)
+          .withName(externalCustomer.name());
 
-        duplicate.setName(externalCustomer.getName());
+        return newCustomer.isInternal() ? updateCustomer(newCustomer) : createCustomer(newCustomer);
 
-        if (duplicate.getInternalId() == null) {
-            createCustomer(duplicate);
-        } else {
-            updateCustomer(duplicate);
-        }
     }
 
-    private void updatePreferredStore(ExternalCustomer externalCustomer, Customer customer) {
-        customer.setPreferredStore(externalCustomer.getPreferredStore());
+    private Customer updatePreferredStore(ExternalCustomer externalCustomer, Customer customer) {
+      return ImmutableCustomer.copyOf(customer).withPreferredStore(externalCustomer.preferredStore());
     }
 
     private Customer createCustomer(Customer customer) {
         return this.customerDataAccess.createCustomerRecord(customer);
     }
 
-    private void populateFields(ExternalCustomer externalCustomer, Customer customer) {
-        customer.setName(externalCustomer.getName());
-        if (externalCustomer.isCompany()) {
-            customer.setCompanyNumber(externalCustomer.getCompanyNumber());
-            customer.setCustomerType(CustomerType.COMPANY);
-        } else {
-            customer.setCustomerType(CustomerType.PERSON);
-        }
+    private Customer populateFields(ExternalCustomer externalCustomer, Customer customer) {
+      return ImmutableCustomer.copyOf(customer)
+        .withName(externalCustomer.name())
+        .withCompanyNumber(externalCustomer.companyNumber())
+        .withCustomerType(externalCustomer.isCompany() ? CustomerType.COMPANY : CustomerType.PERSON);
     }
 
-    private void updateContactInfo(ExternalCustomer externalCustomer, Customer customer) {
-        customer.setAddress(externalCustomer.getPostalAddress());
+    private Customer updateContactInfo(ExternalCustomer externalCustomer, Customer customer) {
+      return ImmutableCustomer.copyOf(customer)
+          .withAddress(externalCustomer.address());
     }
 
     public CustomerMatches loadCompany(ExternalCustomer externalCustomer) {
 
-        final String externalId = externalCustomer.getExternalId();
-        final String companyNumber = externalCustomer.getCompanyNumber();
+        final String externalId = externalCustomer.externalId();
+        final String companyNumber = externalCustomer.companyNumber().get();
 
         CustomerMatches customerMatches = customerDataAccess.loadCompanyCustomer(externalId, companyNumber);
 
-        if (customerMatches.getCustomer() != null && !CustomerType.COMPANY.equals(customerMatches.getCustomer().getCustomerType())) {
-            throw new ConflictException("Existing customer for externalCustomer " + externalId + " already exists and is not a company");
-        }
+        customerMatches.customer()
+          .filter(c -> !CustomerType.COMPANY.equals(c.customerType()))
+          .ifPresent(c -> { throw new ConflictException("Existing customer for externalCustomer " + externalId + " already exists and is not a company");});
 
-        if ("ExternalId".equals(customerMatches.getMatchTerm())) {
-            String customerCompanyNumber = customerMatches.getCustomer().getCompanyNumber();
-            if (!companyNumber.equals(customerCompanyNumber)) {
-                customerMatches.getCustomer().setMasterExternalId(null);
-                customerMatches.addDuplicate(customerMatches.getCustomer());
-                customerMatches.setCustomer(null);
-                customerMatches.setMatchTerm(null);
-            }
-        } else if ("CompanyNumber".equals(customerMatches.getMatchTerm())) {
-            String customerExternalId = customerMatches.getCustomer().getExternalId();
-            if (customerExternalId != null && !externalId.equals(customerExternalId)) {
-                throw new ConflictException("Existing customer for externalCustomer " + companyNumber + " doesn't match external id " + externalId + " instead found " + customerExternalId );
-            }
-            Customer customer = customerMatches.getCustomer();
-            customer.setExternalId(externalId);
-            customer.setMasterExternalId(externalId);
-            customerMatches.addDuplicate(null);
+        //customerMatches = customerMatches.matchedByExternalId() ? matchExternalId(companyNumber, customerMatches) : matchCompanyNumber(externalId, companyNumber, customerMatches);
+
+        if (customerMatches.matchedByExternalId()) {
+          customerMatches = matchDuplicate(companyNumber, customerMatches);
+        } else if (customerMatches.matchedByCompanyNumber()) {
+          customerMatches = matchCompanyNumber(externalId, companyNumber, customerMatches);
         }
 
         return customerMatches;
     }
 
-    public CustomerMatches loadPerson(ExternalCustomer externalCustomer) {
-        final String externalId = externalCustomer.getExternalId();
+  private static CustomerMatches matchCompanyNumber(final String externalId, final String companyNumber, CustomerMatches customerMatches) {
+    String customerExternalId = customerMatches.customer().get().externalId().orElse("");
+    if (!customerExternalId.isEmpty() && !externalId.equals(customerExternalId)) {
+        throw new ConflictException("Existing customer for externalCustomer " + companyNumber + " doesn't match external id " + externalId + " instead found " + customerExternalId );
+    }
+    customerMatches = matchByCompany(externalId, customerMatches);
+    return customerMatches;
+  }
+
+  private static CustomerMatches matchDuplicate(final String companyNumber, CustomerMatches customerMatches) {
+    Optional<String> maybeCustomerCompanyNumber = customerMatches.customer().get().companyNumber();
+    final CustomerMatches finalCustomerMatches = customerMatches;
+    return maybeCustomerCompanyNumber
+      .filter(customerCompanyNumber -> !companyNumber.equals(customerCompanyNumber))
+      .map(c -> {
+        Collection<Customer> duplicate = finalCustomerMatches.duplicates();
+        duplicate.add(finalCustomerMatches.customer().get());
+        return ImmutableCustomerMatches.builder()
+          .from(finalCustomerMatches)
+          .customer(Optional.empty())
+          .matchTerm(Optional.empty())
+          .duplicates(duplicate)
+          .build();
+      }).orElse(ImmutableCustomerMatches.copyOf(customerMatches));
+  }
+
+  public CustomerMatches loadPerson(ExternalCustomer externalCustomer) {
+        final String externalId = externalCustomer.externalId();
 
         CustomerMatches customerMatches = customerDataAccess.loadPersonCustomer(externalId);
 
-        if (customerMatches.getCustomer() != null) {
-            if (!CustomerType.PERSON.equals(customerMatches.getCustomer().getCustomerType())) {
+        if (customerMatches.customer().isPresent()) {
+            if (!CustomerType.PERSON.equals(customerMatches.customer().get().customerType())) {
                 throw new ConflictException("Existing customer for externalCustomer " + externalId + " already exists and is not a person");
             }
 
-            if (!"ExternalId".equals(customerMatches.getMatchTerm())) {
-                Customer customer = customerMatches.getCustomer();
-                customer.setExternalId(externalId);
-                customer.setMasterExternalId(externalId);
+            if (!"ExternalId".equals(customerMatches.matchTerm().get())) {
+              customerMatches = matchByCompany(externalId, customerMatches);
             }
         }
 
         return customerMatches;
     }
+
+  private static CustomerMatches matchByCompany(final String externalId, CustomerMatches customerMatches) {
+    Customer customer = ImmutableCustomer.copyOf(customerMatches.customer().get())
+        .withExternalId(externalId)
+        .withMasterExternalId(externalId);
+    customerMatches = ImmutableCustomerMatches.copyOf(customerMatches).withCustomer(Optional.of(customer));
+    return customerMatches;
+  }
 }

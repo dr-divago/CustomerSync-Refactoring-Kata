@@ -1,38 +1,24 @@
 package codingdojo;
 
+import org.immutables.value.Value;
+
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Optional;
 
-public class CustomerMatches {
-    private Collection<Customer> duplicates = new ArrayList<>();
-    private String matchTerm;
-    private Customer customer;
+@Value.Immutable
+public abstract class CustomerMatches {
+  public abstract Collection<Customer> duplicates();
+  public abstract Optional<String> matchTerm();
+  public abstract Optional<Customer> customer();
 
-    public Customer getCustomer() {
-        return customer;
-    }
 
-    public boolean hasDuplicates() {
-        return !duplicates.isEmpty();
-    }
+  public boolean matchedByExternalId() {
+    return matchTerm().isPresent() && matchTerm().get().equals("ExternalId");
+  }
 
-    public void addDuplicate(Customer duplicate) {
-        duplicates.add(duplicate);
-    }
+  public boolean matchedByCompanyNumber() {
+    return matchTerm().isPresent() && matchTerm().get().equals("CompanyNumber");
+  }
 
-    public Collection<Customer> getDuplicates() {
-        return duplicates;
-    }
-
-    public String getMatchTerm() {
-        return matchTerm;
-    }
-
-    public void setMatchTerm(String matchTerm) {
-        this.matchTerm = matchTerm;
-    }
-
-    public void setCustomer(Customer customer) {
-        this.customer = customer;
-    }
 }

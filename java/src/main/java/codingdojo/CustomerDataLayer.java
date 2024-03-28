@@ -1,5 +1,7 @@
 package codingdojo;
 
+import java.util.Optional;
+
 public interface CustomerDataLayer {
 
     Customer updateCustomerRecord(Customer customer);
@@ -8,9 +10,9 @@ public interface CustomerDataLayer {
 
     void updateShoppingList(ShoppingList consumerShoppingList);
 
-    Customer findByExternalId(String externalId);
+    Optional<Customer> findByExternalId(String externalId);
 
-    Customer findByMasterExternalId(String externalId);
+    Optional<Customer> findByMasterExternalId(String externalId);
 
-    Customer findByCompanyNumber(String companyNumber);
+    Optional<Customer> findByCompanyNumber(String companyNumber);
 }

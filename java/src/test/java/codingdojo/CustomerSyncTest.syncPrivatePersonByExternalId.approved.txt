@@ -3,13 +3,13 @@ Fake Database.
 All Customers {
 
     Customer {
-        externalId='12345'
-        masterExternalId='null'
-        companyNumber='null'
-        internalId='67576'
-        name='null'
+        externalId='Optional[12345]'
+        masterExternalId='Optional.empty'
+        companyNumber='Optional.empty'
+        internalId='Optional[67576]'
+        name='Optional.empty'
         customerType=PERSON
-        preferredStore='null'
+        preferredStore='Optional.empty'
         address='null'
         shoppingLists=[]
     }
@@ -20,7 +20,7 @@ All Shopping Lists
 SYNCING THIS:
 ExternalCustomer {
     externalId='12345'
-    companyNumber='null'
+    companyNumber='Optional.empty'
     name='Joe Bloggs'
     preferredStore='Nordstan'
     address='123 main st, SE-123 45 Stockholm'
@@ -31,13 +31,13 @@ Fake Database.
 All Customers {
 
     Customer {
-        externalId='12345'
-        masterExternalId='null'
-        companyNumber='null'
-        internalId='67576'
-        name='Joe Bloggs'
+        externalId='Optional[12345]'
+        masterExternalId='Optional.empty'
+        companyNumber='Optional.empty'
+        internalId='Optional[67576]'
+        name='Optional[Joe Bloggs]'
         customerType=PERSON
-        preferredStore='Nordstan'
+        preferredStore='Optional[Nordstan]'
         address='123 main st, SE-123 45 Stockholm'
         shoppingLists=[[lipstick, foundation]]
     }

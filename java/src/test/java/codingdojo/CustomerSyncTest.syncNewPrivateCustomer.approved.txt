@@ -8,7 +8,7 @@ All Shopping Lists
 SYNCING THIS:
 ExternalCustomer {
     externalId='12345'
-    companyNumber='null'
+    companyNumber='Optional.empty'
     name='Joe Bloggs'
     preferredStore='Nordstan'
     address='123 main st, SE-123 45 Stockholm'
@@ -19,13 +19,13 @@ Fake Database.
 All Customers {
 
     Customer {
-        externalId='12345'
-        masterExternalId='12345'
-        companyNumber='null'
-        internalId='fake internalId'
-        name='Joe Bloggs'
+        externalId='Optional[12345]'
+        masterExternalId='Optional[12345]'
+        companyNumber='Optional.empty'
+        internalId='Optional[fake internalId]'
+        name='Optional[Joe Bloggs]'
         customerType=PERSON
-        preferredStore='Nordstan'
+        preferredStore='Optional[Nordstan]'
         address='123 main st, SE-123 45 Stockholm'
         shoppingLists=[[lipstick, foundation]]
     }

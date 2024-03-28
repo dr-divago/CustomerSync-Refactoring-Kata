@@ -14,17 +14,17 @@ public class FakeDatabase implements CustomerDataLayer {
 
 
     public void addCustomer(Customer customer) {
-        if (customer.getExternalId() != null) {
-            this.customersByExternalId.put(customer.getExternalId(), customer);
+        if (customer.externalId().isPresent()) {
+            this.customersByExternalId.put(customer.externalId().get(), customer);
         }
-        if (customer.getMasterExternalId() != null) {
-            this.customersByMasterExternalId.put(customer.getMasterExternalId(), customer);
+        if (customer.masterExternalId().isPresent()) {
+            this.customersByMasterExternalId.put(customer.masterExternalId().get(), customer);
         }
-        if (customer.getCompanyNumber() != null) {
-            this.customersByCompanyNumber.put(customer.getCompanyNumber(), customer);
+        if (customer.companyNumber().isPresent()) {
+            this.customersByCompanyNumber.put(customer.companyNumber().get(), customer);
         }
-        if (customer.getShoppingLists() != null) {
-            shoppingLists.addAll(customer.getShoppingLists());
+        if (!customer.shoppingLists().isEmpty()) {
+            shoppingLists.addAll(customer.shoppingLists());
         }
     }
 
@@ -36,10 +36,9 @@ public class FakeDatabase implements CustomerDataLayer {
 
     @Override
     public Customer createCustomerRecord(Customer customer) {
-        String internalId = "fake internalId";
-        customer.setInternalId(internalId);
-        addCustomer(customer);
-        return customer;
+        Customer newCustomer = ImmutableCustomer.copyOf(customer).withInternalId("fake internalId");
+        addCustomer(newCustomer);
+        return newCustomer;
     }
 
     @Override
@@ -48,18 +47,18 @@ public class FakeDatabase implements CustomerDataLayer {
     }
 
     @Override
-    public Customer findByExternalId(String externalId) {
-        return this.customersByExternalId.get(externalId);
+    public Optional<Customer> findByExternalId(String externalId) {
+        return Optional.ofNullable(this.customersByExternalId.get(externalId));
     }
 
     @Override
-    public Customer findByMasterExternalId(String masterExternalId) {
-        return this.customersByMasterExternalId.get(masterExternalId);
+    public Optional<Customer> findByMasterExternalId(String masterExternalId) {
+        return Optional.ofNullable(this.customersByMasterExternalId.get(masterExternalId));
     }
 
     @Override
-    public Customer findByCompanyNumber(String companyNumber) {
-        return this.customersByCompanyNumber.get(companyNumber);
+    public Optional<Customer> findByCompanyNumber(String companyNumber) {
+        return Optional.ofNullable(this.customersByCompanyNumber.get(companyNumber));
     }
 
     public List<Customer> getAllCustomers() {
@@ -67,8 +66,8 @@ public class FakeDatabase implements CustomerDataLayer {
         allCustomers.addAll(customersByMasterExternalId.values());
         allCustomers.addAll(customersByCompanyNumber.values());
         ArrayList<Customer> sortedList = new ArrayList<Customer>(allCustomers);
-        sortedList.sort((o1, o2) -> Comparator.comparing(Customer::getInternalId)
-                .thenComparing(Customer::getName)
+        sortedList.sort((o1, o2) -> Comparator.comparing(customer -> ((Customer)customer).internalId().map(String::toString).orElse(""))
+                .thenComparing(customer -> ((Customer)customer).name().orElse(""))
                 .compare(o1, o2));
         return sortedList;
     }

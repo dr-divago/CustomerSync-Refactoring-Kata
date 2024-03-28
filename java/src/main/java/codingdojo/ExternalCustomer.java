@@ -1,65 +1,21 @@
 package codingdojo;
 
+
+import org.immutables.value.Value;
+
 import java.util.List;
+import java.util.Optional;
 
-public class ExternalCustomer {
-    private Address address;
-    private String name;
-    private String preferredStore;
-    private List<ShoppingList> shoppingLists;
-    private String externalId;
-    private String companyNumber;
+@Value.Immutable
+public abstract class ExternalCustomer {
+    public abstract Address address();
+    public abstract String name();
+    public abstract Optional<String> preferredStore();
+    public abstract List<ShoppingList> shoppingLists();
+    public abstract String externalId();
+    public abstract Optional<String> companyNumber();
 
-    public String getExternalId() {
-        return externalId;
-    }
-
-    public String getCompanyNumber() {
-        return companyNumber;
-    }
-
-    public boolean isCompany() {
-        return companyNumber != null;
-    }
-
-    public Address getPostalAddress() {
-        return address;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getPreferredStore() {
-        return preferredStore;
-    }
-
-    public void setPreferredStore(String preferredStore) {
-        this.preferredStore = preferredStore;
-    }
-
-    public List<ShoppingList> getShoppingLists() {
-        return shoppingLists;
-    }
-
-    public void setShoppingLists(List<ShoppingList> shoppingLists) {
-        this.shoppingLists = shoppingLists;
-    }
-
-    public void setExternalId(String externalId) {
-        this.externalId = externalId;
-    }
-
-    public void setCompanyNumber(String companyNumber) {
-        this.companyNumber = companyNumber;
-    }
-
-    public void setAddress(Address address) {
-        this.address = address;
-    }
-
+  public boolean isCompany() {
+    return companyNumber().isPresent();
+  }
 }
