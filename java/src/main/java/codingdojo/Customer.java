@@ -24,6 +24,18 @@ public abstract class Customer {
         return internalId().isPresent();
     }
 
+    public boolean isPerson() {
+        return customerType().equals(CustomerType.PERSON);
+    }
+
+    public boolean isNotPerson() {
+        return !isPerson();
+    }
+
+    public boolean isCompany() {
+        return customerType().equals(CustomerType.COMPANY);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
