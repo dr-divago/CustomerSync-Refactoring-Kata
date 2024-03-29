@@ -36,6 +36,10 @@ public abstract class Customer {
         return customerType().equals(CustomerType.COMPANY);
     }
 
+    public boolean isNotCompany() {
+        return !isCompany();
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

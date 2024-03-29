@@ -18,12 +18,7 @@ public class CustomerSync {
 
     public boolean syncWithDataLayer(ExternalCustomer externalCustomer) {
 
-        CustomerMatches customerMatches;
-        if (externalCustomer.isCompany()) {
-            customerMatches = loadCompany(externalCustomer);
-        } else {
-            customerMatches = loadPerson(externalCustomer);
-        }
+        CustomerMatches customerMatches = externalCustomer.isCompany() ? loadCompany(externalCustomer) : loadPerson(externalCustomer);
         Optional<Customer> maybeCustomer = customerMatches.customer();
 
         Customer customer;
@@ -104,15 +99,7 @@ public class CustomerSync {
     }
 
     public CustomerMatches loadCompany(ExternalCustomer externalCustomer) {
-
-        final String externalId = externalCustomer.externalId();
-        final String companyNumber = externalCustomer.companyNumber().get();
-
-        CustomerMatches customerMatches = customerDataAccess.loadCompanyCustomer(externalId, companyNumber);
-
-
-
-        return customerMatches;
+        return customerDataAccess.loadCompanyCustomer(externalCustomer.externalId(), externalCustomer.companyNumber().orElseThrow(IllegalStateException::new));
     }
 
 
