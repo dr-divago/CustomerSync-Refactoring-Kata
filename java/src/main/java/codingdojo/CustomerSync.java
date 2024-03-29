@@ -110,46 +110,11 @@ public class CustomerSync {
 
         CustomerMatches customerMatches = customerDataAccess.loadCompanyCustomer(externalId, companyNumber);
 
-        customerMatches.customer()
-          .filter(c -> !CustomerType.COMPANY.equals(c.customerType()))
-          .ifPresent(c -> { throw new ConflictException("Existing customer for externalCustomer " + externalId + " already exists and is not a company");});
 
-        //customerMatches = customerMatches.matchedByExternalId() ? matchExternalId(companyNumber, customerMatches) : matchCompanyNumber(externalId, companyNumber, customerMatches);
-
-        if (customerMatches.matchedByExternalId()) {
-          customerMatches = matchDuplicate(companyNumber, customerMatches);
-        } else if (customerMatches.matchedByCompanyNumber()) {
-          customerMatches = matchCompanyNumber(externalId, companyNumber, customerMatches);
-        }
 
         return customerMatches;
     }
 
-  private static CustomerMatches matchCompanyNumber(final String externalId, final String companyNumber, CustomerMatches customerMatches) {
-    String customerExternalId = customerMatches.customer().get().externalId().orElse("");
-    if (!customerExternalId.isEmpty() && !externalId.equals(customerExternalId)) {
-        throw new ConflictException("Existing customer for externalCustomer " + companyNumber + " doesn't match external id " + externalId + " instead found " + customerExternalId );
-    }
-    customerMatches = matchByCompany(externalId, customerMatches);
-    return customerMatches;
-  }
-
-  private static CustomerMatches matchDuplicate(final String companyNumber, CustomerMatches customerMatches) {
-    Optional<String> maybeCustomerCompanyNumber = customerMatches.customer().get().companyNumber();
-    final CustomerMatches finalCustomerMatches = customerMatches;
-    return maybeCustomerCompanyNumber
-      .filter(customerCompanyNumber -> !companyNumber.equals(customerCompanyNumber))
-      .map(c -> {
-        Collection<Customer> duplicate = finalCustomerMatches.duplicates();
-        duplicate.add(finalCustomerMatches.customer().get());
-        return ImmutableCustomerMatches.builder()
-          .from(finalCustomerMatches)
-          .customer(Optional.empty())
-          .matchTerm(Optional.empty())
-          .duplicates(duplicate)
-          .build();
-      }).orElse(ImmutableCustomerMatches.copyOf(customerMatches));
-  }
 
   public CustomerMatches loadPerson(ExternalCustomer externalCustomer) {
         final String externalId = externalCustomer.externalId();
@@ -160,20 +125,10 @@ public class CustomerSync {
             if (!CustomerType.PERSON.equals(customerMatches.customer().get().customerType())) {
                 throw new ConflictException("Existing customer for externalCustomer " + externalId + " already exists and is not a person");
             }
-
-            if (!"ExternalId".equals(customerMatches.matchTerm().get())) {
-              customerMatches = matchByCompany(externalId, customerMatches);
-            }
         }
 
         return customerMatches;
     }
 
-  private static CustomerMatches matchByCompany(final String externalId, CustomerMatches customerMatches) {
-    Customer customer = ImmutableCustomer.copyOf(customerMatches.customer().get())
-        .withExternalId(externalId)
-        .withMasterExternalId(externalId);
-    customerMatches = ImmutableCustomerMatches.copyOf(customerMatches).withCustomer(Optional.of(customer));
-    return customerMatches;
-  }
+
 }
