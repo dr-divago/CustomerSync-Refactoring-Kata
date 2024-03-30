@@ -19,21 +19,21 @@ public class CustomerSync {
 
   public boolean syncWithDataLayer(ExternalCustomer externalCustomer) {
 
+    //load data from the data layer
     CustomerMatches customerMatches = externalCustomer.isCompany()
-        ? loadCompany(externalCustomer)
-        : loadPerson(externalCustomer);
+        ? customerDataAccess.loadCompanyCustomer(externalCustomer.externalId(), externalCustomer.companyNumber().get())
+        : customerDataAccess.loadPersonCustomer(externalCustomer.externalId());
 
+    // sync the data
     Customer customer = customerMatches.customer().orElse(buildCustomerIfNoMatch(externalCustomer));
-
     Customer newCustomer = populateFields(externalCustomer, customer);
     Collection<Customer> duplicates = syncDuplicateWithExternalCustomerName(externalCustomer, customerMatches.duplicates());
 
+    // update the data layer
     updateDuplicate(duplicates);
-
     return newCustomer.isInternal()
       ? updateCustomer(newCustomer)
       : createCustomerRecord(newCustomer);
-
   }
 
   private static ImmutableCustomer buildCustomerIfNoMatch(ExternalCustomer externalCustomer) {
@@ -92,24 +92,8 @@ public class CustomerSync {
       externalCustomer.shoppingLists().stream()).collect(Collectors.toList());
   }
 
-  public CustomerMatches loadCompany(ExternalCustomer externalCustomer) {
-    return customerDataAccess.loadCompanyCustomer(externalCustomer.externalId(),
-      externalCustomer.companyNumber().orElseThrow(IllegalStateException::new));
-  }
-
 
   public CustomerMatches loadPerson(ExternalCustomer externalCustomer) {
-    final String externalId = externalCustomer.externalId();
-
-    CustomerMatches customerMatches = customerDataAccess.loadPersonCustomer(externalId);
-
-    if (customerMatches.customer().isPresent()) {
-      if (!CustomerType.PERSON.equals(customerMatches.customer().get().customerType())) {
-        throw new ConflictException("Existing customer for externalCustomer " + externalId
-          + " already exists and is not a person");
-      }
-    }
-
-    return customerMatches;
+    return customerDataAccess.loadPersonCustomer(externalCustomer.externalId());
   }
 }
