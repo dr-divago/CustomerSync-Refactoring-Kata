@@ -24,6 +24,10 @@ public abstract class Customer {
         return internalId().isPresent();
     }
 
+    public boolean isNotInternal() {
+        return !isInternal();
+    }
+
     public boolean isPerson() {
         return customerType().equals(CustomerType.PERSON);
     }

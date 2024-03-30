@@ -99,9 +99,9 @@ public class CustomerDataAccess {
     return customerDataLayer.createCustomerRecord(newCustomer);
   }
 
-  public Customer updateShoppingList(Customer customer, ShoppingList consumerShoppingList) {
-    customerDataLayer.updateShoppingList(consumerShoppingList);
-    customerDataLayer.updateCustomerRecord(customer);
-    return customer;
+  public Customer updateShoppingList(Customer customer, List<ShoppingList> consumerShoppingList) {
+    for (ShoppingList shoppingList : consumerShoppingList)
+      customerDataLayer.updateShoppingList(shoppingList);
+    return customerDataLayer.updateCustomerRecord(customer);
   }
 }
