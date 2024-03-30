@@ -18,6 +18,7 @@ public abstract class Customer {
     public abstract Optional<String> name();
     public abstract CustomerType customerType();
     public abstract Optional<String> companyNumber();
+    public abstract Optional<Integer> bonusPoints();
 
 
     public boolean isInternal() {

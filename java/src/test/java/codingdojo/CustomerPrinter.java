@@ -12,6 +12,7 @@ public class CustomerPrinter {
         sb.append("\n" + indent + "    name='" + customer.name() + '\'' );
         sb.append("\n" + indent + "    customerType=" + customer.customerType() );
         sb.append("\n" + indent + "    preferredStore='" + customer.preferredStore() + '\'');
+        sb.append("\n" + indent + "    bonusPoints='" + customer.bonusPoints() + '\'');
         sb.append("\n" + indent + "    address=" + AddressPrinter.printAddress(customer.address().orElse(null)));
         sb.append("\n" + indent + "    shoppingLists=" + ShoppingListPrinter.printShoppingLists(customer.shoppingLists(), indent + "    ") );
         sb.append("\n" + indent + "}");

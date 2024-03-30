@@ -14,6 +14,7 @@ public abstract class ExternalCustomer {
     public abstract List<ShoppingList> shoppingLists();
     public abstract String externalId();
     public abstract Optional<String> companyNumber();
+    public abstract Optional<Integer> bonusPoints();
 
   public boolean isCompany() {
     return companyNumber().isPresent();

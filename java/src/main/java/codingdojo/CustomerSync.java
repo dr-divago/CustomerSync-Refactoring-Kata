@@ -5,6 +5,7 @@ import codingdojo.datawriter.DataWriter.ACTION;
 import codingdojo.dataloader.DataLoader;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,12 +26,12 @@ public class CustomerSync {
 
     // sync the data
     Customer customer = customerMatches.customer().orElse(buildCustomerIfNoMatch(externalCustomer));
-    Customer newCustomer = populateFields(externalCustomer, customer);
+    Customer syncCustomer = syncFieldWithExternalCustomer(externalCustomer, customer);
     Collection<Customer> duplicates = syncDuplicateWithExternalCustomerName(externalCustomer, customerMatches.duplicates());
 
     // update the data layer
     dataWriter.write(duplicates);
-    return dataWriter.write(newCustomer);
+    return dataWriter.write(syncCustomer);
   }
 
   private static ImmutableCustomer buildCustomerIfNoMatch(ExternalCustomer externalCustomer) {
@@ -50,7 +51,7 @@ public class CustomerSync {
   }
 
 
-  private Customer populateFields(ExternalCustomer externalCustomer, Customer customer) {
+  private Customer syncFieldWithExternalCustomer(ExternalCustomer externalCustomer, Customer customer) {
     List<ShoppingList> mergedShoppingList = mergeExternalCustomerListWithCustomer(externalCustomer, customer);
 
     return ImmutableCustomer.copyOf(customer)
@@ -59,6 +60,7 @@ public class CustomerSync {
       .withCustomerType(externalCustomer.isCompany() ? CustomerType.COMPANY : CustomerType.PERSON)
       .withAddress(externalCustomer.address())
       .withPreferredStore(externalCustomer.preferredStore())
+      .withBonusPoints(externalCustomer.isCompany() ? Optional.empty() :externalCustomer.bonusPoints())
       .withShoppingLists(mergedShoppingList);
   }
 

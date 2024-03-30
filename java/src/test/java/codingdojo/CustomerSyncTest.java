@@ -72,6 +72,7 @@ public class CustomerSyncTest {
                 .externalId(externalId)
                 .internalId("67576")
                 .customerType(CustomerType.PERSON)
+                .bonusPoints(0)
                 .build();
 
         db.addCustomer(customer);
@@ -160,6 +161,7 @@ public class CustomerSyncTest {
                 .externalId(externalId)
                 .internalId("45435")
                 .customerType(CustomerType.PERSON)
+                .bonusPoints(0)
                 .build();
 
         db.addCustomer(customer);
@@ -262,6 +264,7 @@ public class CustomerSyncTest {
           .internalId("45435")
           .companyNumber("32423-342")
           .customerType(CustomerType.COMPANY)
+          .bonusPoints(0)
           .build();
 
         db.addCustomer(customer);
@@ -311,7 +314,6 @@ public class CustomerSyncTest {
         Approvals.verify(toAssert);
     }
 
-
     private ExternalCustomer createExternalPrivatePerson(String externalId) {
         return ImmutableExternalCustomer.builder()
                 .externalId(externalId)
@@ -319,6 +321,7 @@ public class CustomerSyncTest {
                 .address(new Address("123 main st", "Stockholm", "SE-123 45"))
                 .preferredStore("Nordstan")
                 .addShoppingLists(new ShoppingList("lipstick", "foundation"))
+                .bonusPoints(50)
                 .build();
     }
 
@@ -329,6 +332,8 @@ public class CustomerSyncTest {
                 .name("Acme Inc.")
                 .address(new Address("123 main st", "Helsingborg", "SE-123 45"))
                 .companyNumber(companyNumber)
+                .preferredStore(Optional.empty())
+                .bonusPoints(0)
                 .addShoppingLists(new ShoppingList("lipstick", "blusher"))
                 .build();
     }
@@ -345,6 +350,8 @@ public class CustomerSyncTest {
         .customerType(CustomerType.COMPANY)
         .companyNumber(companyNumber.orElse(""))
         .shoppingLists(shoppingList)
+        .preferredStore(Optional.empty())
+        .bonusPoints(0)
         .name(name)
         .build();
     }

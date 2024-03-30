@@ -10,7 +10,8 @@ ExternalCustomer {
     externalId='12345'
     companyNumber='Optional[470813-8895]'
     name='Acme Inc.'
-    preferredStore=''
+    preferredStore='Optional.empty'
+    bonusPoints='Optional[0]'
     address='123 main st, SE-123 45 Helsingborg'
     shoppingLists=[[lipstick, blusher]]
 }
@@ -26,6 +27,7 @@ All Customers {
         name='Optional[Acme Inc.]'
         customerType=COMPANY
         preferredStore='Optional.empty'
+        bonusPoints='Optional.empty'
         address='123 main st, SE-123 45 Helsingborg'
         shoppingLists=[[lipstick, blusher]]
     }

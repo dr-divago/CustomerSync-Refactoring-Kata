@@ -8,7 +8,8 @@ public class ExternalCustomerPrinter {
         sb.append("\n" + indent + "    externalId='" + externalCustomer.externalId() + '\'');
         sb.append("\n" + indent + "    companyNumber='" + externalCustomer.companyNumber() + '\'' );
         sb.append("\n" + indent + "    name='" + externalCustomer.name() + '\'' );
-        sb.append("\n" + indent + "    preferredStore='" + externalCustomer.preferredStore().orElse("") + '\'');
+        sb.append("\n" + indent + "    preferredStore='" + externalCustomer.preferredStore() + '\'');
+        sb.append("\n" + indent + "    bonusPoints='" + externalCustomer.bonusPoints() + '\'');
         sb.append("\n" + indent + "    address=" + AddressPrinter.printAddress(externalCustomer.address()));
         sb.append("\n" + indent + "    shoppingLists=" + ShoppingListPrinter.printShoppingLists(externalCustomer.shoppingLists(), indent + "    ") );
         sb.append("\n" + indent + "}");

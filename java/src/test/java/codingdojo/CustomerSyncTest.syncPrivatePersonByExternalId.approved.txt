@@ -10,6 +10,7 @@ All Customers {
         name='Optional.empty'
         customerType=PERSON
         preferredStore='Optional.empty'
+        bonusPoints='Optional[0]'
         address='null'
         shoppingLists=[]
     }
@@ -22,7 +23,8 @@ ExternalCustomer {
     externalId='12345'
     companyNumber='Optional.empty'
     name='Joe Bloggs'
-    preferredStore='Nordstan'
+    preferredStore='Optional[Nordstan]'
+    bonusPoints='Optional[50]'
     address='123 main st, SE-123 45 Stockholm'
     shoppingLists=[[lipstick, foundation]]
 }
@@ -38,6 +40,7 @@ All Customers {
         name='Optional[Joe Bloggs]'
         customerType=PERSON
         preferredStore='Optional[Nordstan]'
+        bonusPoints='Optional[50]'
         address='123 main st, SE-123 45 Stockholm'
         shoppingLists=[[lipstick, foundation]]
     }
