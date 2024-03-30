@@ -1,15 +1,21 @@
 package codingdojo;
 
+import codingdojo.dataloader.DBDataLoader;
+import codingdojo.dataloader.DataLoader;
+import codingdojo.datawriter.DataWriter;
+import codingdojo.datawriter.DataWriter.ACTION;
+import codingdojo.datawriter.DbDataWriter;
 import org.approvaltests.Approvals;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -20,6 +26,20 @@ public class CustomerSyncTest {
      * The external record already exists in the customer db, so no need to create it.
      * There is new data in some fields, which is merged in.
      */
+
+    private DataLoader dataLoader;
+    private DataWriter dataWriter;
+    private FakeDatabase db;
+    private CustomerDataAccess dataAccess;
+
+    @BeforeEach
+    public void setUp() {
+      db = new FakeDatabase();
+      dataAccess = new CustomerDataAccess(db);
+      dataLoader = new DBDataLoader(dataAccess);
+      dataWriter = new DbDataWriter(dataAccess);
+    }
+
     @Test
     public void syncCompanyByExternalId(){
         String externalId = "12345";
@@ -30,16 +50,14 @@ public class CustomerSyncTest {
         Customer customer = createCustomerWithSameCompanyAs(externalCustomer,
           Optional.of(externalId), Optional.of(companyNumber), Collections.emptyList(), Optional.empty());
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
-
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertFalse(created);
+        assertEquals(created, ACTION.UPDATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
@@ -56,16 +74,15 @@ public class CustomerSyncTest {
                 .customerType(CustomerType.PERSON)
                 .build();
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertFalse(created);
+        assertEquals(created, ACTION.UPDATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
@@ -84,16 +101,15 @@ public class CustomerSyncTest {
           Arrays.asList(shoppingList),
           Optional.empty());
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertFalse(created);
+        assertEquals(created, ACTION.UPDATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
@@ -104,15 +120,14 @@ public class CustomerSyncTest {
         String companyNumber = "470813-8895";
         ExternalCustomer externalCustomer = createExternalCompany(externalId, companyNumber);
 
-        FakeDatabase db = new FakeDatabase();
-        CustomerSync sut = new CustomerSync(db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertTrue(created);
+        assertEquals(created, ACTION.CREATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
@@ -122,15 +137,14 @@ public class CustomerSyncTest {
         String externalId = "12345";
         ExternalCustomer externalCustomer = createExternalPrivatePerson(externalId);
 
-        FakeDatabase db = new FakeDatabase();
-        CustomerSync sut = new CustomerSync(db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertTrue(created);
+        assertEquals(created, ACTION.CREATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
@@ -148,9 +162,8 @@ public class CustomerSyncTest {
                 .customerType(CustomerType.PERSON)
                 .build();
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
@@ -173,16 +186,15 @@ public class CustomerSyncTest {
           Optional.of("000-3234"),
           Collections.emptyList(), Optional.empty());
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        //assertTrue(created);
+        assertEquals(created, ACTION.CREATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
@@ -200,16 +212,15 @@ public class CustomerSyncTest {
           Arrays.asList(new ShoppingList("eyeliner", "mascara", "blue bombe eyeshadow")),
           Optional.empty());
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertFalse(created);
+        assertEquals(created, ACTION.UPDATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
@@ -227,9 +238,8 @@ public class CustomerSyncTest {
           Collections.emptyList(),
           Optional.empty());
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
@@ -254,9 +264,8 @@ public class CustomerSyncTest {
           .customerType(CustomerType.COMPANY)
           .build();
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
@@ -288,17 +297,16 @@ public class CustomerSyncTest {
                 .name("company 2")
                 .build();
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
         db.addCustomer(customer2);
-        CustomerSync sut = new CustomerSync(db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertFalse(created);
+        assertEquals(created, ACTION.UPDATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }

@@ -1,5 +1,8 @@
 package codingdojo;
 
+import codingdojo.datawriter.DataWriter;
+import codingdojo.datawriter.DataWriter.ACTION;
+import codingdojo.dataloader.DataLoader;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -7,22 +10,18 @@ import java.util.stream.Stream;
 
 public class CustomerSync {
 
-  private final CustomerDataAccess customerDataAccess;
+  private final DataLoader dataLoader;
+  private final DataWriter dataWriter;
 
-  public CustomerSync(CustomerDataLayer customerDataLayer) {
-    this(new CustomerDataAccess(customerDataLayer));
+
+  public CustomerSync(DataLoader dataLoader, DataWriter dataWriter) {
+    this.dataLoader = dataLoader;
+    this.dataWriter = dataWriter;
   }
 
-  public CustomerSync(CustomerDataAccess db) {
-    this.customerDataAccess = db;
-  }
-
-  public boolean syncWithDataLayer(ExternalCustomer externalCustomer) {
-
+  public ACTION syncWithDataLayer(ExternalCustomer externalCustomer) {
     //load data from the data layer
-    CustomerMatches customerMatches = externalCustomer.isCompany()
-        ? customerDataAccess.loadCompanyCustomer(externalCustomer.externalId(), externalCustomer.companyNumber().get())
-        : customerDataAccess.loadPersonCustomer(externalCustomer.externalId());
+    CustomerMatches customerMatches = dataLoader.load(externalCustomer);
 
     // sync the data
     Customer customer = customerMatches.customer().orElse(buildCustomerIfNoMatch(externalCustomer));
@@ -30,10 +29,8 @@ public class CustomerSync {
     Collection<Customer> duplicates = syncDuplicateWithExternalCustomerName(externalCustomer, customerMatches.duplicates());
 
     // update the data layer
-    updateDuplicate(duplicates);
-    return newCustomer.isInternal()
-      ? updateCustomer(newCustomer)
-      : createCustomerRecord(newCustomer);
+    dataWriter.write(duplicates);
+    return dataWriter.write(newCustomer);
   }
 
   private static ImmutableCustomer buildCustomerIfNoMatch(ExternalCustomer externalCustomer) {
@@ -44,15 +41,6 @@ public class CustomerSync {
       .build();
   }
 
-  private void updateDuplicate(Collection<Customer> duplicates) {
-    duplicates.stream()
-      .filter(Customer::isInternal)
-      .forEach(this.customerDataAccess::updateCustomerRecord);
-
-    duplicates.stream()
-      .filter(Customer::isNotInternal)
-      .forEach(c -> this.customerDataAccess.createCustomerRecord(c));
-  }
 
   private static List<Customer> syncDuplicateWithExternalCustomerName(ExternalCustomer externalCustomer,
     Collection<Customer> duplicates) {
@@ -61,16 +49,6 @@ public class CustomerSync {
       .collect(Collectors.toList());
   }
 
-  private boolean createCustomerRecord(Customer newCustomer) {
-    this.customerDataAccess.createCustomerRecord(newCustomer);
-    return true;
-  }
-
-  private boolean updateCustomer(Customer customer) {
-    this.customerDataAccess.updateCustomerRecord(customer);
-    this.customerDataAccess.updateShoppingList(customer, customer.shoppingLists());
-    return false;
-  }
 
   private Customer populateFields(ExternalCustomer externalCustomer, Customer customer) {
     List<ShoppingList> mergedShoppingList = mergeExternalCustomerListWithCustomer(externalCustomer, customer);
@@ -84,16 +62,9 @@ public class CustomerSync {
       .withShoppingLists(mergedShoppingList);
   }
 
-  private static List<ShoppingList> mergeExternalCustomerListWithCustomer(
-    ExternalCustomer externalCustomer,
-    Customer customer) {
+  private static List<ShoppingList> mergeExternalCustomerListWithCustomer(ExternalCustomer externalCustomer, Customer customer) {
     return Stream.concat(
       customer.shoppingLists().stream(),
       externalCustomer.shoppingLists().stream()).collect(Collectors.toList());
-  }
-
-
-  public CustomerMatches loadPerson(ExternalCustomer externalCustomer) {
-    return customerDataAccess.loadPersonCustomer(externalCustomer.externalId());
   }
 }
