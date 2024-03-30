@@ -93,15 +93,15 @@ public class CustomerDataAccess {
   }
 
   public Customer createCustomerRecord(Customer customer) {
-    return customerDataLayer.createCustomerRecord(customer);
+    Customer newCustomer = ImmutableCustomer
+      .copyOf(customer)
+      .withInternalId("fake internalId");
+    return customerDataLayer.createCustomerRecord(newCustomer);
   }
 
   public Customer updateShoppingList(Customer customer, ShoppingList consumerShoppingList) {
-    List<ShoppingList> newList = new ArrayList<>(customer.shoppingLists());
-    newList.add(consumerShoppingList);
-    Customer updateCustomer = ImmutableCustomer.copyOf(customer).withShoppingLists(newList);
     customerDataLayer.updateShoppingList(consumerShoppingList);
-    customerDataLayer.updateCustomerRecord(updateCustomer);
-    return updateCustomer;
+    customerDataLayer.updateCustomerRecord(customer);
+    return customer;
   }
 }

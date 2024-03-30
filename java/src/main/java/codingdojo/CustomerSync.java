@@ -1,5 +1,6 @@
 package codingdojo;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -19,22 +20,23 @@ public class CustomerSync {
     public boolean syncWithDataLayer(ExternalCustomer externalCustomer) {
 
         CustomerMatches customerMatches = externalCustomer.isCompany() ? loadCompany(externalCustomer) : loadPerson(externalCustomer);
-        Optional<Customer> maybeCustomer = customerMatches.customer();
 
-        Customer customer;
-        if (!maybeCustomer.isPresent()) {
-            customer = ImmutableCustomer.builder()
-                    .externalId(externalCustomer.externalId())
-                    .masterExternalId(externalCustomer.externalId())
-                    .customerType(externalCustomer.isCompany() ? CustomerType.COMPANY : CustomerType.PERSON)
-                    .build();
-        }
-        else {
-            customer = maybeCustomer.get();
-        }
+        Customer customer = customerMatches.customer()
+          .orElse(ImmutableCustomer.builder()
+            .externalId(externalCustomer.externalId())
+            .masterExternalId(externalCustomer.externalId())
+            .customerType(externalCustomer.isCompany() ? CustomerType.COMPANY : CustomerType.PERSON)
+            .build());
+
 
         Customer newCustomer = populateFields(externalCustomer, customer);
-
+        newCustomer = updateRelations(externalCustomer, newCustomer);
+        Collection<Customer> duplicates = customerMatches.duplicates();
+        if (!duplicates.isEmpty()) {
+          for (Customer duplicate : customerMatches.duplicates()) {
+            updateDuplicate(externalCustomer, duplicate);
+          }
+        }
         boolean created = false;
         if (!newCustomer.isInternal()) {
             newCustomer = createCustomer(newCustomer);
@@ -42,17 +44,9 @@ public class CustomerSync {
         } else {
             newCustomer = updateCustomer(newCustomer);
         }
-        newCustomer = updateContactInfo(externalCustomer, newCustomer);
 
-        Collection<Customer> duplicates = customerMatches.duplicates();
-        if (!duplicates.isEmpty()) {
-            for (Customer duplicate : customerMatches.duplicates()) {
-                duplicate = updateDuplicate(externalCustomer, duplicate);
-            }
-        }
 
-        newCustomer = updateRelations(externalCustomer, newCustomer);
-        newCustomer = updatePreferredStore(externalCustomer, newCustomer);
+
         updateCustomer(newCustomer);
 
         return created;
@@ -61,7 +55,10 @@ public class CustomerSync {
     private Customer updateRelations(ExternalCustomer externalCustomer, Customer customer) {
         List<ShoppingList> consumerShoppingLists = externalCustomer.shoppingLists();
         for (ShoppingList consumerShoppingList : consumerShoppingLists) {
-            customer = this.customerDataAccess.updateShoppingList(customer, consumerShoppingList);
+          List<ShoppingList> newList = new ArrayList<>(customer.shoppingLists());
+          newList.add(consumerShoppingList);
+          Customer updateCustomer = ImmutableCustomer.copyOf(customer).withShoppingLists(newList);
+          customer = this.customerDataAccess.updateShoppingList(updateCustomer, consumerShoppingList);
         }
         return customer;
     }
@@ -78,10 +75,6 @@ public class CustomerSync {
 
     }
 
-    private Customer updatePreferredStore(ExternalCustomer externalCustomer, Customer customer) {
-      return ImmutableCustomer.copyOf(customer).withPreferredStore(externalCustomer.preferredStore());
-    }
-
     private Customer createCustomer(Customer customer) {
         return this.customerDataAccess.createCustomerRecord(customer);
     }
@@ -90,12 +83,9 @@ public class CustomerSync {
       return ImmutableCustomer.copyOf(customer)
         .withName(externalCustomer.name())
         .withCompanyNumber(externalCustomer.companyNumber())
-        .withCustomerType(externalCustomer.isCompany() ? CustomerType.COMPANY : CustomerType.PERSON);
-    }
-
-    private Customer updateContactInfo(ExternalCustomer externalCustomer, Customer customer) {
-      return ImmutableCustomer.copyOf(customer)
-          .withAddress(externalCustomer.address());
+        .withCustomerType(externalCustomer.isCompany() ? CustomerType.COMPANY : CustomerType.PERSON)
+        .withAddress(externalCustomer.address())
+        .withPreferredStore(externalCustomer.preferredStore());
     }
 
     public CustomerMatches loadCompany(ExternalCustomer externalCustomer) {

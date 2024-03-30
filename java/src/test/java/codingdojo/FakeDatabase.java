@@ -36,9 +36,8 @@ public class FakeDatabase implements CustomerDataLayer {
 
     @Override
     public Customer createCustomerRecord(Customer customer) {
-        Customer newCustomer = ImmutableCustomer.copyOf(customer).withInternalId("fake internalId");
-        addCustomer(newCustomer);
-        return newCustomer;
+        addCustomer(customer);
+        return customer;
     }
 
     @Override
