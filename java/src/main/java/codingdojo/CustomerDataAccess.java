@@ -74,7 +74,7 @@ public class CustomerDataAccess {
     final String companyNumber,
     final Customer customerMatched) {
 
-    throwsIfConflict(externalId, companyNumber, customerMatched);
+    throwsIfConflict(externalId, companyNumber, customerMatched.externalId());
     return ImmutableCustomerMatches.builder()
       .customer(ImmutableCustomer.copyOf(customerMatched)
         .withExternalId(externalId)
@@ -86,10 +86,10 @@ public class CustomerDataAccess {
   private static void throwsIfConflict(
     final String externalId,
     final String companyNumber,
-    final Customer customerMatched) {
+    final Optional<String> customerExternalIdOptional) {
 
-    customerMatched.externalId()
-      .filter(customer -> !externalId.equals(customer))
+    customerExternalIdOptional
+      .filter(customerExternalId -> !externalId.equals(customerExternalId))
       .ifPresent(c -> {
         throw new ConflictException(
           "Existing customer for externalCustomer " + companyNumber + " doesn't match external id "
@@ -100,22 +100,24 @@ public class CustomerDataAccess {
   public CustomerMatches loadPersonCustomer(final String externalId) {
     Optional<Customer> matchByPersonalNumber = this.customerDataLayer.findByExternalId(externalId);
 
-    throwsIfConflict(externalId, matchByPersonalNumber);
     return matchByPersonalNumber
-      .map(customer -> ImmutableCustomerMatches.of(Optional.of(customer), Collections.emptyList()))
+      .map(customer -> matchByPersonalNumber(customer, externalId))
       .orElseGet(() -> ImmutableCustomerMatches.of(Optional.empty(), Collections.emptyList()));
+  }
+
+  private static ImmutableCustomerMatches matchByPersonalNumber(final Customer customer, final String externalId) {
+    throwsIfConflict(externalId, customer.customerType());
+    return ImmutableCustomerMatches.of(Optional.of(customer), Collections.emptyList());
   }
 
   private static void throwsIfConflict(
     final String externalId,
-    final Optional<Customer> matchByPersonalNumber) {
+    final CustomerType type) {
 
-    matchByPersonalNumber.
-      filter(customer -> !CustomerType.PERSON.equals(matchByPersonalNumber.get().customerType()))
-      .ifPresent(c -> {
-        throw new ConflictException("Existing customer for externalCustomer " + externalId
-          + " already exists and is not a person");
-      });
+    if (!CustomerType.PERSON.equals(type)) {
+      throw new ConflictException("Existing customer for externalCustomer " + externalId
+        + " already exists and is not a person");
+    }
   }
 
   public Customer updateCustomerRecord(final Customer customer) {
