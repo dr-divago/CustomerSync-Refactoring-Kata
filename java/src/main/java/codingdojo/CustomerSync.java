@@ -1,40 +1,53 @@
 package codingdojo;
 
+import codingdojo.dataloader.DataLoader;
 import codingdojo.datawriter.DataWriter;
 import codingdojo.datawriter.DataWriter.ACTION;
-import codingdojo.dataloader.DataLoader;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * This class is responsible for syncing the data between the external customer and the
+ * internal customer.
+ */
 public class CustomerSync {
 
   private final DataLoader dataLoader;
   private final DataWriter dataWriter;
 
 
-  public CustomerSync(DataLoader dataLoader, DataWriter dataWriter) {
+  public CustomerSync(final DataLoader dataLoader, final DataWriter dataWriter) {
     this.dataLoader = dataLoader;
     this.dataWriter = dataWriter;
   }
 
-  public ACTION syncWithDataLayer(ExternalCustomer externalCustomer) {
+  /**
+   * This method syncs the data between the external customer and the internal customer.
+   *
+   * @param externalCustomer The external customer to sync with the internal customer.
+   * @return The action taken to sync the data.
+   */
+  public ACTION syncWithDataLayer(final ExternalCustomer externalCustomer) {
     //load data from the data layer
-    CustomerMatches customerMatches = dataLoader.load(externalCustomer);
+    final CustomerMatches customerMatches = dataLoader.load(externalCustomer);
 
     // sync the data
-    Customer customer = customerMatches.customer().orElse(buildCustomerIfNoMatch(externalCustomer));
-    Customer syncCustomer = syncFieldWithExternalCustomer(externalCustomer, customer);
-    Collection<Customer> duplicates = syncDuplicateWithExternalCustomerName(externalCustomer, customerMatches.duplicates());
+    final Customer customer = customerMatches.customer()
+        .orElse(buildCustomerIfNoMatch(externalCustomer));
+    final Customer syncCustomer = syncFieldWithExternalCustomer(externalCustomer, customer);
+    final Collection<Customer> duplicates = syncDuplicateWithExternalCustomerName(
+        externalCustomer,
+        customerMatches.duplicates());
 
     // update the data layer
     dataWriter.write(duplicates);
     return dataWriter.write(syncCustomer);
   }
 
-  private static ImmutableCustomer buildCustomerIfNoMatch(ExternalCustomer externalCustomer) {
+  private static ImmutableCustomer buildCustomerIfNoMatch(final ExternalCustomer externalCustomer) {
     return ImmutableCustomer.builder()
       .externalId(externalCustomer.externalId())
       .masterExternalId(externalCustomer.externalId())
@@ -43,16 +56,21 @@ public class CustomerSync {
   }
 
 
-  private static List<Customer> syncDuplicateWithExternalCustomerName(ExternalCustomer externalCustomer,
-    Collection<Customer> duplicates) {
+  private static List<Customer> syncDuplicateWithExternalCustomerName(
+      final ExternalCustomer externalCustomer,
+      final Collection<Customer> duplicates) {
     return duplicates.stream()
       .map(duplicate -> ImmutableCustomer.copyOf(duplicate).withName(externalCustomer.name()))
       .collect(Collectors.toList());
   }
 
 
-  private Customer syncFieldWithExternalCustomer(ExternalCustomer externalCustomer, Customer customer) {
-    List<ShoppingList> mergedShoppingList = mergeExternalCustomerListWithCustomer(externalCustomer, customer);
+  private Customer syncFieldWithExternalCustomer(
+      final ExternalCustomer externalCustomer,
+      final Customer customer) {
+
+    final List<ShoppingList> mergedShoppingList =
+        mergeExternalCustomerListWithCustomer(externalCustomer, customer);
 
     return ImmutableCustomer.copyOf(customer)
       .withName(externalCustomer.name())
@@ -60,11 +78,15 @@ public class CustomerSync {
       .withCustomerType(externalCustomer.isCompany() ? CustomerType.COMPANY : CustomerType.PERSON)
       .withAddress(externalCustomer.address())
       .withPreferredStore(externalCustomer.preferredStore())
-      .withBonusPoints(externalCustomer.isCompany() ? Optional.empty() :externalCustomer.bonusPoints())
+      .withBonusPoints(externalCustomer.isCompany()
+        ? Optional.empty()
+        : externalCustomer.bonusPoints())
       .withShoppingLists(mergedShoppingList);
   }
 
-  private static List<ShoppingList> mergeExternalCustomerListWithCustomer(ExternalCustomer externalCustomer, Customer customer) {
+  private static List<ShoppingList> mergeExternalCustomerListWithCustomer(
+      final ExternalCustomer externalCustomer,
+      final Customer customer) {
     return Stream.concat(
       customer.shoppingLists().stream(),
       externalCustomer.shoppingLists().stream()).collect(Collectors.toList());
