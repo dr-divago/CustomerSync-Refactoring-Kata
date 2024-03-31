@@ -12,11 +12,11 @@ public class CustomerDataAccess {
 
   private final CustomerDataLayer customerDataLayer;
 
-  public CustomerDataAccess(CustomerDataLayer customerDataLayer) {
+  public CustomerDataAccess(final CustomerDataLayer customerDataLayer) {
     this.customerDataLayer = customerDataLayer;
   }
 
-  public CustomerMatches loadCompanyCustomer(String externalId, String companyNumber) {
+  public CustomerMatches loadCompanyCustomer(final String externalId, final String companyNumber) {
     Optional<Customer> maybeCustomerMatchedByExternalId = this.customerDataLayer.findByExternalId(
       externalId);
 
@@ -28,55 +28,51 @@ public class CustomerDataAccess {
       });
 
     return maybeCustomerMatchedByExternalId
-      .map(customer -> Pair.of(customer, mergeDuplicate(externalId, Arrays.asList(customer))))
-      .map(customerDupPair -> buildCustomerMatch(customerDupPair.getLeft(), companyNumber, customerDupPair.getRight()))
-      .orElse(matchByCompany(externalId, companyNumber));
+      .map(customer -> Pair.of(customer, findDuplicate(externalId, Arrays.asList(customer))))
+      .map(customerAndDuplicate -> buildCustomerMatchByExternalId(customerAndDuplicate.getLeft(), companyNumber, customerAndDuplicate.getRight()))
+      .orElse(buildCustomerMatchByCompany(externalId, companyNumber));
   }
 
-  private List<Customer> mergeDuplicate(String externalId, List<Customer> dup) {
-    return this.customerDataLayer.findByMasterExternalId(externalId)
-      .map(duplicateCustomer -> mergeDuplicate(dup, duplicateCustomer))
-      .orElse(dup);
+  private List<Customer> findDuplicate(
+    final String externalId,
+    final List<Customer> dup) {
+    return
+      findDuplicateCustomer(externalId)
+        .map(duplicateCustomer -> mergeDuplicate(duplicateCustomer, dup))
+        .orElse(dup);
   }
 
-  private CustomerMatches buildCustomerMatch(final Customer matchByExternalId, String companyNumber, List<Customer> mergedDuplicate) {
+  private Optional<Customer> findDuplicateCustomer(final String externalId) {
+    return this.customerDataLayer.findByMasterExternalId(externalId);
+  }
+
+  private static List<Customer> mergeDuplicate(
+    final Customer matchByMasterId,
+    final List<Customer> dup) {
+    return Stream.concat(dup.stream(), Stream.of(matchByMasterId)).collect(Collectors.toList());
+  }
+
+  private CustomerMatches buildCustomerMatchByExternalId(
+    final Customer matchByExternalId,
+    final String companyNumber,
+    final List<Customer> mergedDuplicate) {
     return matchByExternalId.companyNumber().get().equals(companyNumber)
       ? ImmutableCustomerMatches.of(Optional.of(matchByExternalId), mergedDuplicate)
       : ImmutableCustomerMatches.of(Optional.empty(), mergedDuplicate);
   }
 
-  private static List<Customer> mergeDuplicate(List<Customer> dup, Customer matchByMasterId) {
-    return Stream.concat(dup.stream(), Stream.of(matchByMasterId)).collect(Collectors.toList());
-  }
-
-  public CustomerMatches loadPersonCustomer(String externalId) {
-    Optional<Customer> matchByPersonalNumber = this.customerDataLayer.findByExternalId(externalId);
-
-    throwsIfConflict(externalId, matchByPersonalNumber);
-    return matchByPersonalNumber
-      .map(customer -> ImmutableCustomerMatches.of(Optional.of(customer), Collections.emptyList()))
-      .orElseGet(() -> ImmutableCustomerMatches.of(Optional.empty(), Collections.emptyList()));
-  }
-
-  private static void throwsIfConflict(String externalId, Optional<Customer> matchByPersonalNumber) {
-    if (matchByPersonalNumber.isPresent()) {
-      if (!CustomerType.PERSON.equals(matchByPersonalNumber.get().customerType())) {
-        throw new ConflictException("Existing customer for externalCustomer " + externalId
-          + " already exists and is not a person");
-      }
-    }
-  }
-
-  private CustomerMatches matchByCompany(final String externalId, final String companyNumber) {
-    Optional<Customer> customerMatchByCompanyNumber = this.customerDataLayer.findByCompanyNumber(
-      companyNumber);
-    return customerMatchByCompanyNumber
+  private CustomerMatches buildCustomerMatchByCompany(
+    final String externalId,
+    final String companyNumber) {
+    return this.customerDataLayer.findByCompanyNumber(companyNumber)
       .map(customer -> matchCompanyNumber(externalId, companyNumber, customer))
-      .orElseGet(() -> ImmutableCustomerMatches.of(Optional.empty(), Collections.emptyList()));
+      .orElse(ImmutableCustomerMatches.of(Optional.empty(), Collections.emptyList()));
   }
 
-  public static CustomerMatches matchCompanyNumber(final String externalId,
-    final String companyNumber, Customer customerMatched) {
+  public static CustomerMatches matchCompanyNumber(
+    final String externalId,
+    final String companyNumber,
+    final Customer customerMatched) {
 
     throwsIfConflict(externalId, companyNumber, customerMatched);
     return ImmutableCustomerMatches.builder()
@@ -87,7 +83,11 @@ public class CustomerDataAccess {
       .build();
   }
 
-  private static void throwsIfConflict(String externalId, String companyNumber, Customer customerMatched) {
+  private static void throwsIfConflict(
+    final String externalId,
+    final String companyNumber,
+    final Customer customerMatched) {
+
     customerMatched.externalId()
       .filter(customer -> !externalId.equals(customer))
       .ifPresent(c -> {
@@ -97,18 +97,42 @@ public class CustomerDataAccess {
       });
   }
 
-  public Customer updateCustomerRecord(Customer customer) {
+  public CustomerMatches loadPersonCustomer(final String externalId) {
+    Optional<Customer> matchByPersonalNumber = this.customerDataLayer.findByExternalId(externalId);
+
+    throwsIfConflict(externalId, matchByPersonalNumber);
+    return matchByPersonalNumber
+      .map(customer -> ImmutableCustomerMatches.of(Optional.of(customer), Collections.emptyList()))
+      .orElseGet(() -> ImmutableCustomerMatches.of(Optional.empty(), Collections.emptyList()));
+  }
+
+  private static void throwsIfConflict(
+    final String externalId,
+    final Optional<Customer> matchByPersonalNumber) {
+
+    matchByPersonalNumber.
+      filter(customer -> !CustomerType.PERSON.equals(matchByPersonalNumber.get().customerType()))
+      .ifPresent(c -> {
+        throw new ConflictException("Existing customer for externalCustomer " + externalId
+          + " already exists and is not a person");
+      });
+  }
+
+  public Customer updateCustomerRecord(final Customer customer) {
     return customerDataLayer.updateCustomerRecord(customer);
   }
 
-  public Customer createCustomerRecord(Customer customer) {
+  public Customer createCustomerRecord(final Customer customer) {
     Customer newCustomer = ImmutableCustomer
       .copyOf(customer)
       .withInternalId("fake internalId");
     return customerDataLayer.createCustomerRecord(newCustomer);
   }
 
-  public Customer updateShoppingList(Customer customer, List<ShoppingList> consumerShoppingList) {
+  public Customer updateShoppingList(
+    final Customer customer,
+    final List<ShoppingList> consumerShoppingList) {
+
     for (ShoppingList shoppingList : consumerShoppingList)
       customerDataLayer.updateShoppingList(shoppingList);
     return customerDataLayer.updateCustomerRecord(customer);
