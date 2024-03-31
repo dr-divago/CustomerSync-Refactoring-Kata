@@ -18,4 +18,6 @@ public abstract class ExternalCustomer {
   public boolean isCompany() {
     return companyNumber().isPresent();
   }
+
+  public boolean isPerson() {return !isCompany(); }
 }

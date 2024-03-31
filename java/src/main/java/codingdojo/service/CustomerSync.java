@@ -21,13 +21,13 @@ import java.util.stream.Stream;
  */
 public class CustomerSync {
 
-  private final DataLoader dataLoader;
   private final DataWriter dataWriter;
+  private final DataLoader dataLoader;
 
 
   public CustomerSync(final DataLoader dataLoader, final DataWriter dataWriter) {
-    this.dataLoader = dataLoader;
     this.dataWriter = dataWriter;
+    this.dataLoader = dataLoader;
   }
 
   /**

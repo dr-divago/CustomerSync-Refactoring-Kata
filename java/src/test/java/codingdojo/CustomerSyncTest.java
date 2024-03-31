@@ -2,12 +2,10 @@ package codingdojo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import codingdojo.dataloader.DBDataLoader;
 import codingdojo.dataloader.DataLoader;
 import codingdojo.datawriter.DataWriter;
 import codingdojo.datawriter.DataWriter.ACTION;
 import codingdojo.datawriter.DbDataWriter;
-import codingdojo.domain.Address;
 import codingdojo.domain.Customer;
 import codingdojo.domain.CustomerType;
 import codingdojo.domain.ExternalCustomer;
@@ -16,7 +14,6 @@ import codingdojo.domain.ImmutableCustomer;
 import codingdojo.domain.ImmutableExternalCustomer;
 import codingdojo.domain.ShoppingList;
 import codingdojo.service.ConflictException;
-import codingdojo.service.CustomerDataAccess;
 import codingdojo.service.CustomerSync;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,17 +32,13 @@ public class CustomerSyncTest {
      * There is new data in some fields, which is merged in.
      */
 
-    private DataLoader dataLoader;
     private DataWriter dataWriter;
     private FakeDatabase db;
-    private CustomerDataAccess dataAccess;
 
     @BeforeEach
     public void setUp() {
       db = new FakeDatabase();
-      dataAccess = new CustomerDataAccess(db);
-      dataLoader = new DBDataLoader(dataAccess);
-      dataWriter = new DbDataWriter(dataAccess);
+      dataWriter = new DbDataWriter(db);
     }
 
     @Test
@@ -59,6 +52,7 @@ public class CustomerSyncTest {
           Optional.of(externalId), Optional.of(companyNumber), Collections.emptyList(), Optional.empty());
 
         db.addCustomer(customer);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
         CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
@@ -84,6 +78,7 @@ public class CustomerSyncTest {
                 .build();
 
         db.addCustomer(customer);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
         CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
@@ -111,6 +106,7 @@ public class CustomerSyncTest {
           Optional.empty());
 
         db.addCustomer(customer);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
         CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
@@ -129,6 +125,7 @@ public class CustomerSyncTest {
         String companyNumber = "470813-8895";
         ExternalCustomer externalCustomer = createExternalCompany(externalId, companyNumber);
 
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
         CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
@@ -146,6 +143,7 @@ public class CustomerSyncTest {
         String externalId = "12345";
         ExternalCustomer externalCustomer = createExternalPrivatePerson(externalId);
 
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
         CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
@@ -173,6 +171,7 @@ public class CustomerSyncTest {
                 .build();
 
         db.addCustomer(customer);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
         CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
@@ -197,6 +196,7 @@ public class CustomerSyncTest {
           Collections.emptyList(), Optional.empty());
 
         db.addCustomer(customer);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
         CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
@@ -223,6 +223,7 @@ public class CustomerSyncTest {
           Optional.empty());
 
         db.addCustomer(customer);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
         CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
@@ -249,6 +250,7 @@ public class CustomerSyncTest {
           Optional.empty());
 
         db.addCustomer(customer);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
         CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
@@ -276,6 +278,7 @@ public class CustomerSyncTest {
           .build();
 
         db.addCustomer(customer);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
         CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
@@ -310,6 +313,7 @@ public class CustomerSyncTest {
 
         db.addCustomer(customer);
         db.addCustomer(customer2);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
         CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
