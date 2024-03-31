@@ -28,7 +28,7 @@ public class DbDataWriter implements DataWriter {
 
       duplicates.stream()
         .filter(Customer::isNotInternal)
-        .forEach(c -> this.customerDataAccess.createCustomerRecord(c));
+        .forEach(this.customerDataAccess::createCustomerRecord);
   }
 
   private ACTION updateCustomer(Customer customer) {

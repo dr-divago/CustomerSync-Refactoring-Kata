@@ -28,14 +28,6 @@ public abstract class Customer {
         return !isInternal();
     }
 
-    public boolean isPerson() {
-        return customerType().equals(CustomerType.PERSON);
-    }
-
-    public boolean isNotPerson() {
-        return !isPerson();
-    }
-
     public boolean isCompany() {
         return customerType().equals(CustomerType.COMPANY);
     }
