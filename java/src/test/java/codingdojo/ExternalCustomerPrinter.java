@@ -1,5 +1,7 @@
 package codingdojo;
 
+import codingdojo.domain.ExternalCustomer;
+
 public class ExternalCustomerPrinter {
 
     public static String print(ExternalCustomer externalCustomer, String indent) {

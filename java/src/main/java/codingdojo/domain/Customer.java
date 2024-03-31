@@ -1,8 +1,7 @@
-package codingdojo;
+package codingdojo.domain;
 
 import org.immutables.value.Value;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;

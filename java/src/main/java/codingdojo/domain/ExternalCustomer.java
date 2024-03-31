@@ -1,10 +1,9 @@
-package codingdojo;
+package codingdojo.domain;
 
-
-import org.immutables.value.Value;
 
 import java.util.List;
 import java.util.Optional;
+import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class ExternalCustomer {

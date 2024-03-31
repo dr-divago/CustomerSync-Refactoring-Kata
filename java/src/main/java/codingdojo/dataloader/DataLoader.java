@@ -1,7 +1,7 @@
 package codingdojo.dataloader;
 
-import codingdojo.CustomerMatches;
-import codingdojo.ExternalCustomer;
+import codingdojo.domain.CustomerMatches;
+import codingdojo.domain.ExternalCustomer;
 
 public interface DataLoader {
     CustomerMatches load(ExternalCustomer externalCustomer);

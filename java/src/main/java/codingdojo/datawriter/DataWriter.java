@@ -1,6 +1,6 @@
 package codingdojo.datawriter;
 
-import codingdojo.Customer;
+import codingdojo.domain.Customer;
 import java.util.Collection;
 
 public interface DataWriter {

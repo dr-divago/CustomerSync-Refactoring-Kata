@@ -1,5 +1,12 @@
-package codingdojo;
+package codingdojo.service;
 
+import codingdojo.dao.CustomerDataLayer;
+import codingdojo.domain.Customer;
+import codingdojo.domain.CustomerMatches;
+import codingdojo.domain.CustomerType;
+import codingdojo.domain.ImmutableCustomer;
+import codingdojo.domain.ImmutableCustomerMatches;
+import codingdojo.domain.ShoppingList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;

@@ -1,5 +1,7 @@
 package codingdojo;
 
+import codingdojo.domain.Customer;
+
 public class CustomerPrinter {
 
     public static String print(Customer customer, String indent) {

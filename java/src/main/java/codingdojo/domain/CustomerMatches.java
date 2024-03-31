@@ -1,8 +1,8 @@
-package codingdojo;
+package codingdojo.domain;
 
+import codingdojo.domain.Customer;
 import org.immutables.value.Value;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Optional;
 

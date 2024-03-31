@@ -1,23 +1,31 @@
 package codingdojo;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import codingdojo.dataloader.DBDataLoader;
 import codingdojo.dataloader.DataLoader;
 import codingdojo.datawriter.DataWriter;
 import codingdojo.datawriter.DataWriter.ACTION;
 import codingdojo.datawriter.DbDataWriter;
-import org.approvaltests.Approvals;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
+import codingdojo.domain.Address;
+import codingdojo.domain.Customer;
+import codingdojo.domain.CustomerType;
+import codingdojo.domain.ExternalCustomer;
+import codingdojo.domain.ImmutableAddress;
+import codingdojo.domain.ImmutableCustomer;
+import codingdojo.domain.ImmutableExternalCustomer;
+import codingdojo.domain.ShoppingList;
+import codingdojo.service.ConflictException;
+import codingdojo.service.CustomerDataAccess;
+import codingdojo.service.CustomerSync;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.approvaltests.Approvals;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 
 public class CustomerSyncTest {
@@ -318,7 +326,7 @@ public class CustomerSyncTest {
         return ImmutableExternalCustomer.builder()
                 .externalId(externalId)
                 .name("Joe Bloggs")
-                .address(new Address("123 main st", "Stockholm", "SE-123 45"))
+                .address(ImmutableAddress.builder().street("123 main st").city("Stockholm").postalCode("SE-123 45").build())
                 .preferredStore("Nordstan")
                 .addShoppingLists(new ShoppingList("lipstick", "foundation"))
                 .bonusPoints(50)
@@ -330,7 +338,7 @@ public class CustomerSyncTest {
         return ImmutableExternalCustomer.builder()
                 .externalId(externalId)
                 .name("Acme Inc.")
-                .address(new Address("123 main st", "Helsingborg", "SE-123 45"))
+                .address(ImmutableAddress.builder().street("123 main st").city("Helsingborg").postalCode("SE-123 45").build())
                 .companyNumber(companyNumber)
                 .preferredStore(Optional.empty())
                 .bonusPoints(0)

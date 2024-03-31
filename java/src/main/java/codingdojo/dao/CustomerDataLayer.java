@@ -1,5 +1,7 @@
-package codingdojo;
+package codingdojo.dao;
 
+import codingdojo.domain.Customer;
+import codingdojo.domain.ShoppingList;
 import java.util.Optional;
 
 public interface CustomerDataLayer {

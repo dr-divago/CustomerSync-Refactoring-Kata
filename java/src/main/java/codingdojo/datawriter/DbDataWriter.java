@@ -1,8 +1,7 @@
 package codingdojo.datawriter;
 
-import codingdojo.Customer;
-import codingdojo.CustomerDataAccess;
-import codingdojo.datawriter.DataWriter;
+import codingdojo.domain.Customer;
+import codingdojo.service.CustomerDataAccess;
 import java.util.Collection;
 
 public class DbDataWriter implements DataWriter {

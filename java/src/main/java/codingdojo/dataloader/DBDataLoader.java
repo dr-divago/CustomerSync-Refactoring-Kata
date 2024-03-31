@@ -1,8 +1,8 @@
 package codingdojo.dataloader;
 
-import codingdojo.CustomerDataAccess;
-import codingdojo.CustomerMatches;
-import codingdojo.ExternalCustomer;
+import codingdojo.service.CustomerDataAccess;
+import codingdojo.domain.CustomerMatches;
+import codingdojo.domain.ExternalCustomer;
 
 public class DBDataLoader implements DataLoader {
 

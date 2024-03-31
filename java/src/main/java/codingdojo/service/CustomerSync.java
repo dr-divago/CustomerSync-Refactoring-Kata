@@ -1,8 +1,14 @@
-package codingdojo;
+package codingdojo.service;
 
 import codingdojo.dataloader.DataLoader;
 import codingdojo.datawriter.DataWriter;
 import codingdojo.datawriter.DataWriter.ACTION;
+import codingdojo.domain.Customer;
+import codingdojo.domain.CustomerMatches;
+import codingdojo.domain.CustomerType;
+import codingdojo.domain.ExternalCustomer;
+import codingdojo.domain.ImmutableCustomer;
+import codingdojo.domain.ShoppingList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +53,7 @@ public class CustomerSync {
     return dataWriter.write(syncCustomer);
   }
 
-  private static ImmutableCustomer buildCustomerIfNoMatch(final ExternalCustomer externalCustomer) {
+  private static Customer buildCustomerIfNoMatch(final ExternalCustomer externalCustomer) {
     return ImmutableCustomer.builder()
       .externalId(externalCustomer.externalId())
       .masterExternalId(externalCustomer.externalId())
