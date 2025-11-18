@@ -1,7 +1,7 @@
 package codingdojo;
 
+import codingdojo.domain.ShoppingList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ShoppingListPrinter {
     public static String printShoppingLists(List<ShoppingList> shoppingLists, String indent) {

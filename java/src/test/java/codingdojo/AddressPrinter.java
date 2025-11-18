@@ -1,5 +1,7 @@
 package codingdojo;
 
+import codingdojo.domain.Address;
+
 public class AddressPrinter {
     public static String printAddress(Address address) {
         if (address == null) {
@@ -7,11 +9,11 @@ public class AddressPrinter {
         }
         StringBuilder sb = new StringBuilder();
         sb.append("\'");
-        sb.append(address.getStreet());
+        sb.append(address.street());
         sb.append(", ");
-        sb.append(address.getPostalCode());
+        sb.append(address.postalCode());
         sb.append(" ");
-        sb.append(address.getCity());
+        sb.append(address.city());
         sb.append("\'");
         return sb.toString();
     }

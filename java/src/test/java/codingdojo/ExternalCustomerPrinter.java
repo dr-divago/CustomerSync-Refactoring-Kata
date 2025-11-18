@@ -1,16 +1,19 @@
 package codingdojo;
 
+import codingdojo.domain.ExternalCustomer;
+
 public class ExternalCustomerPrinter {
 
     public static String print(ExternalCustomer externalCustomer, String indent) {
         StringBuilder sb = new StringBuilder();
         sb.append("ExternalCustomer {");
-        sb.append("\n" + indent + "    externalId='" + externalCustomer.getExternalId() + '\'');
-        sb.append("\n" + indent + "    companyNumber='" + externalCustomer.getCompanyNumber() + '\'' );
-        sb.append("\n" + indent + "    name='" + externalCustomer.getName() + '\'' );
-        sb.append("\n" + indent + "    preferredStore='" + externalCustomer.getPreferredStore() + '\'');
-        sb.append("\n" + indent + "    address=" + AddressPrinter.printAddress(externalCustomer.getPostalAddress()));
-        sb.append("\n" + indent + "    shoppingLists=" + ShoppingListPrinter.printShoppingLists(externalCustomer.getShoppingLists(), indent + "    ") );
+        sb.append("\n" + indent + "    externalId='" + externalCustomer.externalId() + '\'');
+        sb.append("\n" + indent + "    companyNumber='" + externalCustomer.companyNumber() + '\'' );
+        sb.append("\n" + indent + "    name='" + externalCustomer.name() + '\'' );
+        sb.append("\n" + indent + "    preferredStore='" + externalCustomer.preferredStore() + '\'');
+        sb.append("\n" + indent + "    bonusPoints='" + externalCustomer.bonusPoints() + '\'');
+        sb.append("\n" + indent + "    address=" + AddressPrinter.printAddress(externalCustomer.address()));
+        sb.append("\n" + indent + "    shoppingLists=" + ShoppingListPrinter.printShoppingLists(externalCustomer.shoppingLists(), indent + "    ") );
         sb.append("\n" + indent + "}");
 
         return sb.toString();

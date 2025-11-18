@@ -1,13 +1,28 @@
 package codingdojo;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import codingdojo.dataloader.DataLoader;
+import codingdojo.datawriter.DataWriter;
+import codingdojo.datawriter.DataWriter.ACTION;
+import codingdojo.datawriter.DbDataWriter;
+import codingdojo.domain.Customer;
+import codingdojo.domain.CustomerType;
+import codingdojo.domain.ExternalCustomer;
+import codingdojo.domain.ImmutableAddress;
+import codingdojo.domain.ImmutableCustomer;
+import codingdojo.domain.ImmutableExternalCustomer;
+import codingdojo.domain.ShoppingList;
+import codingdojo.service.ConflictException;
+import codingdojo.service.CustomerSync;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.approvaltests.Approvals;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.Arrays;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class CustomerSyncTest {
@@ -16,26 +31,35 @@ public class CustomerSyncTest {
      * The external record already exists in the customer db, so no need to create it.
      * There is new data in some fields, which is merged in.
      */
+
+    private DataWriter dataWriter;
+    private FakeDatabase db;
+
+    @BeforeEach
+    public void setUp() {
+      db = new FakeDatabase();
+      dataWriter = new DbDataWriter(db);
+    }
+
     @Test
     public void syncCompanyByExternalId(){
         String externalId = "12345";
+        String companyNumber = "470813-8895";
 
-        ExternalCustomer externalCustomer = createExternalCompany();
-        externalCustomer.setExternalId(externalId);
+        ExternalCustomer externalCustomer = createExternalCompany(externalId, companyNumber);
 
-        Customer customer = createCustomerWithSameCompanyAs(externalCustomer);
-        customer.setExternalId(externalId);
+        Customer customer = createCustomerWithSameCompanyAs(externalCustomer,
+          Optional.of(externalId), Optional.of(companyNumber), Collections.emptyList(), Optional.empty());
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
-
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertFalse(created);
+        assertEquals(created, ACTION.UPDATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
@@ -44,24 +68,25 @@ public class CustomerSyncTest {
     public void syncPrivatePersonByExternalId(){
         String externalId = "12345";
 
-        ExternalCustomer externalCustomer = createExternalPrivatePerson();
-        externalCustomer.setExternalId(externalId);
+        ExternalCustomer externalCustomer = createExternalPrivatePerson(externalId);
 
-        Customer customer = new Customer();
-        customer.setCustomerType(CustomerType.PERSON);
-        customer.setInternalId("67576");
-        customer.setExternalId(externalId);
+        Customer customer = ImmutableCustomer.builder()
+                .externalId(externalId)
+                .internalId("67576")
+                .customerType(CustomerType.PERSON)
+                .bonusPoints(0)
+                .build();
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertFalse(created);
+        assertEquals(created, ACTION.UPDATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
@@ -69,62 +94,64 @@ public class CustomerSyncTest {
     @Test
     public void syncShoppingLists(){
         String externalId = "12345";
+        String companyNumber = "470813-8895";
 
-        ExternalCustomer externalCustomer = createExternalCompany();
-        externalCustomer.setExternalId(externalId);
+        ExternalCustomer externalCustomer = createExternalCompany(externalId, companyNumber);
 
-        Customer customer = createCustomerWithSameCompanyAs(externalCustomer);
-        customer.setExternalId(externalId);
-        customer.setShoppingLists(Arrays.asList(new ShoppingList("eyeliner", "blusher")));
+        ShoppingList shoppingList = new ShoppingList("eyeliner", "blusher");
+        Customer customer = createCustomerWithSameCompanyAs(externalCustomer,
+          Optional.of(externalId),
+          Optional.of(companyNumber),
+          Arrays.asList(shoppingList),
+          Optional.empty());
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertFalse(created);
+        assertEquals(created, ACTION.UPDATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
 
     @Test
     public void syncNewCompanyCustomer(){
+        String externalId = "12345";
+        String companyNumber = "470813-8895";
+        ExternalCustomer externalCustomer = createExternalCompany(externalId, companyNumber);
 
-        ExternalCustomer externalCustomer = createExternalCompany();
-        externalCustomer.setExternalId("12345");
-
-        FakeDatabase db = new FakeDatabase();
-        CustomerSync sut = new CustomerSync(db);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertTrue(created);
+        assertEquals(created, ACTION.CREATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
 
     @Test
     public void syncNewPrivateCustomer(){
+        String externalId = "12345";
+        ExternalCustomer externalCustomer = createExternalPrivatePerson(externalId);
 
-        ExternalCustomer externalCustomer = createExternalPrivatePerson();
-        externalCustomer.setExternalId("12345");
-
-        FakeDatabase db = new FakeDatabase();
-        CustomerSync sut = new CustomerSync(db);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertTrue(created);
+        assertEquals(created, ACTION.CREATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
@@ -132,18 +159,20 @@ public class CustomerSyncTest {
     @Test
     public void conflictExceptionWhenExistingCustomerIsPerson() {
         String externalId = "12345";
+        String companyNumber = "470813-8895";
 
-        ExternalCustomer externalCustomer = createExternalCompany();
-        externalCustomer.setExternalId(externalId);
+        ExternalCustomer externalCustomer = createExternalCompany(externalId,companyNumber);
 
-        Customer customer = new Customer();
-        customer.setCustomerType(CustomerType.PERSON);
-        customer.setInternalId("45435");
-        customer.setExternalId(externalId);
+        Customer customer = ImmutableCustomer.builder()
+                .externalId(externalId)
+                .internalId("45435")
+                .customerType(CustomerType.PERSON)
+                .bonusPoints(0)
+                .build();
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
@@ -157,24 +186,25 @@ public class CustomerSyncTest {
     @Test
     public void syncByExternalIdButCompanyNumbersConflict(){
         String externalId = "12345";
+        String companyNumber = "470813-8895";
 
-        ExternalCustomer externalCustomer = createExternalCompany();
-        externalCustomer.setExternalId(externalId);
+        ExternalCustomer externalCustomer = createExternalCompany(externalId, companyNumber);
 
-        Customer customer = createCustomerWithSameCompanyAs(externalCustomer);
-        customer.setExternalId(externalId);
-        customer.setCompanyNumber("000-3234");
+        Customer customer = createCustomerWithSameCompanyAs(externalCustomer,
+          Optional.of(externalId),
+          Optional.of("000-3234"),
+          Collections.emptyList(), Optional.empty());
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertTrue(created);
+        assertEquals(created, ACTION.CREATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
@@ -184,23 +214,24 @@ public class CustomerSyncTest {
     public void syncByCompanyNumber(){
         String companyNumber = "12345";
 
-        ExternalCustomer externalCustomer = createExternalCompany();
-        externalCustomer.setCompanyNumber(companyNumber);
+        ExternalCustomer externalCustomer = createExternalCompany("12345", companyNumber);
 
-        Customer customer = createCustomerWithSameCompanyAs(externalCustomer);
-        customer.setCompanyNumber(companyNumber);
-        customer.addShoppingList(new ShoppingList("eyeliner", "mascara", "blue bombe eyeshadow"));
+        Customer customer = createCustomerWithSameCompanyAs(externalCustomer,
+          Optional.empty(),
+          Optional.of(companyNumber),
+          Arrays.asList(new ShoppingList("eyeliner", "mascara", "blue bombe eyeshadow")),
+          Optional.empty());
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertFalse(created);
+        assertEquals(created, ACTION.UPDATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
@@ -208,18 +239,19 @@ public class CustomerSyncTest {
     @Test
     public void syncByCompanyNumberWithConflictingExternalId(){
         String companyNumber = "12345";
+        String externalId = "45646";
 
-        ExternalCustomer externalCustomer = createExternalCompany();
-        externalCustomer.setCompanyNumber(companyNumber);
-        externalCustomer.setExternalId("45646");
+        ExternalCustomer externalCustomer = createExternalCompany(externalId, companyNumber);
 
-        Customer customer = createCustomerWithSameCompanyAs(externalCustomer);
-        customer.setCompanyNumber(companyNumber);
-        customer.setExternalId("conflicting id");
+        Customer customer = createCustomerWithSameCompanyAs(externalCustomer,
+          Optional.of("conflicting id"),
+          Optional.of(companyNumber),
+          Collections.emptyList(),
+          Optional.empty());
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
@@ -235,18 +267,19 @@ public class CustomerSyncTest {
     public void conflictExceptionWhenExistingCustomerIsCompany() {
         String externalId = "12345";
 
-        ExternalCustomer externalCustomer = createExternalPrivatePerson();
-        externalCustomer.setExternalId(externalId);
+        ExternalCustomer externalCustomer = createExternalPrivatePerson(externalId);
 
-        Customer customer = new Customer();
-        customer.setCustomerType(CustomerType.COMPANY);
-        customer.setCompanyNumber("32423-342");
-        customer.setInternalId("45435");
-        customer.setExternalId(externalId);
+        Customer customer = ImmutableCustomer.builder()
+          .externalId(externalId)
+          .internalId("45435")
+          .companyNumber("32423-342")
+          .customerType(CustomerType.COMPANY)
+          .bonusPoints(0)
+          .build();
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
-        CustomerSync sut = new CustomerSync(db);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
@@ -260,64 +293,79 @@ public class CustomerSyncTest {
     @Test
     public void syncCompanyByExternalIdWithNonMatchingMasterId(){
         String externalId = "12345";
+        String companyNumber = "470813-8895";
 
-        ExternalCustomer externalCustomer = createExternalCompany();
-        externalCustomer.setExternalId(externalId);
+        ExternalCustomer externalCustomer = createExternalCompany(externalId, companyNumber);
 
-        Customer customer = createCustomerWithSameCompanyAs(externalCustomer);
-        customer.setExternalId(externalId);
-        customer.setName("company 1");
+        Customer customer = createCustomerWithSameCompanyAs(externalCustomer,
+          Optional.of(externalId),
+          Optional.of(companyNumber),
+          Collections.emptyList(),
+          Optional.of("company 1"));
 
-        Customer customer2 = new Customer();
-        customer2.setCompanyNumber(externalCustomer.getCompanyNumber());
-        customer2.setCustomerType(CustomerType.COMPANY);
-        customer2.setInternalId("45435234");
-        customer2.setMasterExternalId(externalId);
-        customer2.setName("company 2");
+        Customer customer2 = ImmutableCustomer.builder()
+                .companyNumber(externalCustomer.companyNumber())
+                .internalId("45435234")
+                .customerType(CustomerType.COMPANY)
+                .masterExternalId(externalId)
+                .name("company 2")
+                .build();
 
-        FakeDatabase db = new FakeDatabase();
         db.addCustomer(customer);
         db.addCustomer(customer2);
-        CustomerSync sut = new CustomerSync(db);
+        DataLoader dataLoader = DataLoader.from(externalCustomer, db);
+        CustomerSync sut = new CustomerSync(dataLoader, dataWriter);
 
         StringBuilder toAssert = printBeforeState(externalCustomer, db);
 
         // ACT
-        boolean created = sut.syncWithDataLayer(externalCustomer);
+        ACTION created = sut.syncWithDataLayer(externalCustomer);
 
-        assertFalse(created);
+        assertEquals(created, ACTION.UPDATE);
         printAfterState(db, toAssert);
         Approvals.verify(toAssert);
     }
 
-
-    private ExternalCustomer createExternalPrivatePerson() {
-        ExternalCustomer externalCustomer = new ExternalCustomer();
-        externalCustomer.setExternalId("12345");
-        externalCustomer.setName("Joe Bloggs");
-        externalCustomer.setAddress(new Address("123 main st", "Stockholm", "SE-123 45"));
-        externalCustomer.setPreferredStore("Nordstan");
-        externalCustomer.setShoppingLists(Arrays.asList(new ShoppingList("lipstick", "foundation")));
-        return externalCustomer;
+    private ExternalCustomer createExternalPrivatePerson(String externalId) {
+        return ImmutableExternalCustomer.builder()
+                .externalId(externalId)
+                .name("Joe Bloggs")
+                .address(ImmutableAddress.builder().street("123 main st").city("Stockholm").postalCode("SE-123 45").build())
+                .preferredStore("Nordstan")
+                .addShoppingLists(new ShoppingList("lipstick", "foundation"))
+                .bonusPoints(50)
+                .build();
     }
 
 
-    private ExternalCustomer createExternalCompany() {
-        ExternalCustomer externalCustomer = new ExternalCustomer();
-        externalCustomer.setExternalId("12345");
-        externalCustomer.setName("Acme Inc.");
-        externalCustomer.setAddress(new Address("123 main st", "Helsingborg", "SE-123 45"));
-        externalCustomer.setCompanyNumber("470813-8895");
-        externalCustomer.setShoppingLists(Arrays.asList(new ShoppingList("lipstick", "blusher")));
-        return externalCustomer;
+    private ExternalCustomer createExternalCompany(String externalId, String companyNumber) {
+        return ImmutableExternalCustomer.builder()
+                .externalId(externalId)
+                .name("Acme Inc.")
+                .address(ImmutableAddress.builder().street("123 main st").city("Helsingborg").postalCode("SE-123 45").build())
+                .companyNumber(companyNumber)
+                .preferredStore(Optional.empty())
+                .bonusPoints(0)
+                .addShoppingLists(new ShoppingList("lipstick", "blusher"))
+                .build();
     }
 
-    private Customer createCustomerWithSameCompanyAs(ExternalCustomer externalCustomer) {
-        Customer customer = new Customer();
-        customer.setCompanyNumber(externalCustomer.getCompanyNumber());
-        customer.setCustomerType(CustomerType.COMPANY);
-        customer.setInternalId("45435");
-        return customer;
+    private Customer createCustomerWithSameCompanyAs(ExternalCustomer externalCustomer,
+                                                     Optional<String> externalId,
+                                                     Optional<String> companyNumber,
+                                                     List<ShoppingList> shoppingList,
+                                                     Optional<String> name) {
+      return ImmutableCustomer.builder()
+        .externalId(externalId)
+        .companyNumber(externalCustomer.companyNumber().orElse(""))
+        .internalId("45435")
+        .customerType(CustomerType.COMPANY)
+        .companyNumber(companyNumber.orElse(""))
+        .shoppingLists(shoppingList)
+        .preferredStore(Optional.empty())
+        .bonusPoints(0)
+        .name(name)
+        .build();
     }
 
     private StringBuilder printBeforeState(ExternalCustomer externalCustomer, FakeDatabase db) {
